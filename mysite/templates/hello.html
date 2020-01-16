@@ -1,0 +1,14 @@
+{% extends "base.html"%}
+
+{% block mainbody %}
+<p>集成了 base.html</p>
+<button>扫描</button>
+
+
+<form action="/test/test/form/" method="post">
+    a: <input type="text" name="a"> <br>
+    b: <input type="text" name="b"> <br>
+    
+    <input type="submit" value="提交">
+</form>
+{% endblock%}

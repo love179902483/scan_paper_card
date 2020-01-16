@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="../static/node_modules/axios/dist/axios.js"></script>
+    <script src="../static/node_modules/socket.io-client/dist/socket.io.js"></script>
+</head>
+<style>
+    ul {
+        padding: 0;
+        margin: 0;
+    }
+    li {
+        list-style-type: none;
+    }
+    .container{
+        border: 1px solid black;
+        width: 300px;
+        margin: 0 auto;
+        padding: 10px;
+        position: relative;
+    }
+    .set-title{
+        font-size: 20px;
+    }
+    .my-content > li{
+        padding: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .my-content > li > p{
+        width: 100px;
+    }
+    select{
+        min-width: 150px;
+        padding: 10px 15px;
+    }
+    button{
+        min-width: 250px;
+        padding: 10px 15px;
+    }
+    .image-container {
+        border: 1px solid red;
+        min-height: 200px;
+        max-height: 500px;
+        overflow:auto;
+    }
+    .image-container ul>li{
+        padding: 5px 20px;
+        background-color: yellow;
+        border-bottom: 1px solid rgb(173, 173, 173);
+    }
+    .image-container ul>li:first-child{
+        padding: 5px ;
+        background-color: green;
+    }
+
+    .load-image {
+        position: absolute;
+        top: 35px;
+        background-color: #fff;
+        display: none;
+    }
+</style>
+<body>
+    <div class="container">
+        <div class="set-title">
+            <p>扫描设置</p>
+            {{data[1]}}
+        </div>
+            
+        <!-- <form action="/test" method="POST"> -->
+            <img class="load-image" id='loadMask' src="../static/loading_2.gif" alt="">
+            <ul class="my-content">
+                {% for this_li in data[0] %}
+                <li>
+                    <p>{{this_li['name']}}</p>
+                    
+                    <select name="resolution" id="resolution">
+                        {% for thisData in this_li['data']%}
+                        <option value="{{thisData[0]}}">{{thisData[1]}}</option>
+                        {% endfor %}
+                    </select>
+                </li>
+                {% endfor %}
+             
+                
+            
+                <li>
+                    <button  onclick="scan()" >开始扫描</button>
+                </li>
+            </ul>
+
+            <div class="image-container" id='imgContainer'></div>
+        <!-- </form> -->
+        
+       
+    </div>
+  
+</body>
+<script>
+    // 父 image 元素的container
+    var imageContainer = document.getElementById('imgContainer');
+    var scanMaskDoc = document.getElementById('loadMask');
+    // 扫描方法
+    function scan(){
+        scanMaskDoc.style.display = 'block'
+        startWebSocket()
+        axios.post('/scan')
+        .then(function(response){
+            console.log(response);
+            // if(response['data']['isScan'] === true){
+                
+            // }else{
+            //     alert('其他扫描程序正在进行中!!')
+            // }
+            // socket.close();
+        })
+        .catch(function(error){
+            socket.close();
+            alert('扫描有问题'+ JSON.stringify(error));
+            console.error(error);
+        })
+        
+    }
+    
+    function downloadThisDir(){
+        console.log(this)
+    }
+
+    // 开始websocket    
+    function startWebSocket(){
+        var socket = io.connect('http://127.0.0.1:5000/test');
+
+        socket.on('connect', function(){
+            socket.send('connected!!!!')
+        })
+
+        socket.on('message', function(msg){
+            if(msg.hasOwnProperty('image')){
+                if(msg['isScan']){
+                    
+                    scanMaskDoc.style.display = 'block'
+                }else{
+                    socket.close()
+                    scanMaskDoc.style.display = 'none'
+                    alert('扫描结束')
+                }
+                console.log(msg['image'])
+                var thisHtml = ""
+                msg['image'].forEach(function(element, index) {
+                    thisHtml = thisHtml + "<ul class=''>"
+                    thisHtml =  thisHtml + '<li> <span class="parentDir">' + element['dir']+'</span><button onclick="downloadThisDir()">下载</button> </li>';
+                    element['files'].forEach(function(inElement){
+                        thisHtml = thisHtml + '<li class="thisImage">' + inElement +'</li>'
+                    })
+                    thisHtml = thisHtml + '</ul>'
+                });
+
+                imageContainer.innerHTML = thisHtml;
+            }
+        })
+    }
+    
+    // 查看图片方法
+    imageContainer.addEventListener('click', function(event){
+        var thisTarget = event.target;
+        if(thisTarget.getAttribute('class') == 'thisImage'){
+            console.log(thisTarget.innerHTML)
+            var parentDir = thisTarget.parentNode.firstChild.firstElementChild.innerText;
+            console.log(thisTarget.parentNode.firstChild.innerHTML)
+            console.log(thisTarget.parentNode.firstChild.firstElementChild.innerText)
+            var url = 'http://127.0.0.1:5000/static/images/' + parentDir + '/' + event.target.innerHTML;
+            window.open(url)
+        }
+    },false)
+
+</script>
+</html>
